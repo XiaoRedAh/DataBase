@@ -27,9 +27,9 @@ DBS包括DBMS和DB，DB是相互关联的数据的集合
 OS夹在hardware层和DBMS层间，是硬件中DB与DBMS交互的桥梁
 DBMS层夹在OS层和Application develop tools层之间，是操作系统和软件(应用程序)进行交互的桥梁
 
-![](pic/DBS%EF%BC%8CDBMS%EF%BC%8CDB%E4%B9%8B%E9%97%B4%E7%9A%84%E5%85%B3%E7%B3%BBpng.png)
+![替代：pic/DBS，DBMS，DB之间的关系png](https://image.itbaima.net/images/253/image-20230610168449252.png)
 
-![](pic/DBMS%E6%B2%9F%E9%80%9A%E8%BD%AF%E4%BB%B6%E5%92%8C%E6%95%B0%E6%8D%AE%E5%BA%93DB.png)
+![替代：pic/DBMS沟通软件和数据库DB](https://image.itbaima.net/images/253/image-20230611164499499.png)
 
 # 三级模式/体系结构
 
