@@ -253,6 +253,21 @@ Where 课程 = “物理”
 Order By 成绩 desc, 学号 asc
 ```
 
+### 空值处理
+
+空值null代表值未知/值不存在
+
+**判断空值**： `A is [not] null`，不能用=或!=（结果为unknown）
+
+**空值参与运算**
+* **null参与算数运算**：结果都是null
+* **null参与比较运算**：结果是unknown
+* **null参与布尔运算，会被当成unknown，优先级如下**
+  * and：false > unknown > true
+  * or：true > unknown > false
+  * not：not unknown 结果还是unknown
+* **null参与聚集运算**：除了count(*)之外，其余聚集函数都忽略null
+
 
 
 
