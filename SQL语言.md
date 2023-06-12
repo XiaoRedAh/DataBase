@@ -269,7 +269,222 @@ Order By 成绩 desc, 学号 asc
 * **null参与聚集运算**：除了count(*)之外，其余聚集函数都忽略null
 
 
+### 连接关系
 
+From子句中的两个相邻关系之间
+* 逗号分隔 —— 表示做笛卡尔积; 
+* 连接操作 —— 表示将它们连接成一个新的关系
+
+连接操作由连接类型和连接条件组成
+
+**连接类型**
+* `inner join` : 内连接。结果不包含失配元组(失配元组指的是因不满足连接条件，无法和其它元组相连接的元组)
+* `left (outer) join`: 左外连接。结果包含左边关系的失配元组
+* `right (outer) join`: 右外连接。结果包含右边关系的失配元组
+* `full (outer) join`: 全外连接。结果包含两边关系的失配元组
+* `cross join`: 笛卡儿积 例子
+* `union join` 
+
+**连接条件**
+* `natural`: 连接两边元组条件为同名属性相等（自然连接）
+* `using (属性1, 属性2, …)`: 类似自然连接，但是只限于列出的的属性相等
+* `on 条件`: 按照指定的条件连接两边元组
+
+**例子（就是看用法，意思不管）**
+```sql
+Select Emp.姓名, Dept.名称 as 部门
+From Emp inner join Dept on Emp.部门号＝Dept.部门号
+
+Select Emp.姓名, Dept.名称 as 部门
+From Emp inner join Dept using (部门号)
+
+Select Emp.姓名, Dept.名称 as 部门
+From Emp natural inner join Dept
+
+Select Emp.姓名, Dept.名称 as 部门
+From Emp left outer join Dept on Emp.部门号=Dept.部门号
+
+Select Emp.姓名, Dept.名称 as 部门
+From Emp natural right outer join Dept
+
+Select Emp.姓名, Dept.名称 as 部门
+From Emp full outer join Dept using (部门号)
+```
+
+### 嵌套子查询
+
+#### where中嵌套子查询
+
+where子句中用子查询构造条件
+
+***
+用法一：**检查集合成员资格**
+
+*集合差except不支持的话，就可以用not in代替（用法三的not exists也可以代替）*
+
+**格式**：`字段 in/ not in 集合`
+```sql
+A [not] in (子查询)
+```
+
+**要求**
+A可以是一个属性，也可以是一个属性集，但必须和子查询结果集的属性集一致
+
+**结果**
+当A是子查询结果中的一个值时，结果为真。否则为假
+
+**举例**: 查询没有选修数学的学生姓名
+```sql
+Select 姓名
+From R
+Where 姓名 not in (Select 姓名 From RWhere 课程=“数学” ) 
+```
+
+***
+
+用法二：**集合比较**
+
+**格式**：`字段 比较运算符 som/all/any 集合`
+```sql
+A (比较运算, >, <, =,…)  some|all (子查询)
+```
+
+**要求**
+A可以是一个属性，也可以是一个属性集，但必须和子查询结果集的属性集一致
+
+**结果**
+* some：有一个满足就为true
+* all：全部满足才为true
+
+**特别说明**
+* `=some`等价于`in`，`<>some`不等价于`not in`
+* `<>all`等价于`not in`，`=all`不等价于`in`
+
+**举例**：查询物理课哪个学生的成绩最高
+```sql
+Select 姓名, 成绩 as 最高物理成绩
+From R
+Where 课程＝“物理” and 成绩 >= all (Select 成绩 From R Where 课程=“物理”) 
+```
+
+***
+
+用法三：**判断查询结果是否为空**
+
+**格式**
+```sql
+[not] exists (子查询)
+```
+
+**要点**
+* 子查询可包含多个属性(因为它不必和某个值做比较)
+* 允许**相关子查询**，可引用外层查询关系的属性(最好标明关系前缀)。这一点对于in、some、all操作来说也是适用的
+
+**结果**
+当子查询的结果不为空（包含任何记录）时，exists的结果为真。否则为假
+
+**举例**：查询哪个学生没有选修任何课程，列出姓名和年龄
+```sql
+//使用not in
+Select 姓名, 年龄
+From S
+Where 姓名 not in (Select 姓名 From R) 
+
+//转换成使用not exists
+Select 姓名, 年龄
+From S
+Where not exists (Select * From R Where R.姓名=S.姓名) 
+```
+
+***
+
+#### from中嵌套子查询
+
+在From子句中，允许用**子查询构造新的关系**，称为派生关系。新**关系必须命名**，其属性也可以重命名
+
+**派生关系的作用**：允许用户在上一个查询的基础上，进一步查询，从而“一步步”地完成复杂的查询。
+
+**格式**
+```sql
+From … , (SQL 子查询) as 关系名… , 
+From … , (SQL子查询) as 关系名(属性1, 属性2…) , 
+```
+
+**举例**：查询每门课程的最高成绩和相应学生姓名
+```sql
+Select 课程, 姓名, 最高成绩 　
+From R, (Select  课程, Max(成绩) as 最高成绩 From  R Group By 课程 ) as S
+Where R.成绩=S.最高成绩
+and R.课程=S.课程
+```
+
+## 增删改
+
+***
+**insert子句插入**
+
+* 如果没有列出插入的属性，默认values()里要一一对应表中所有的列
+* 所列值的个数必须和属性的个数相等，且一一对应
+* 对没有指定的属性填入缺省值（Create Table时定义），没有缺省值时填入空值
+
+**插入一个元组**
+```sql
+Insert Into 关系 [(属性1, 属性2, …)] Values (值1, 值2 , … )
+```
+
+**插入多个元组（1个sql查询的结果）**
+```sql
+/*查询结果的各个属性赋值给前面的属性，
+所以要一一对应：类型相容，属性名可不同*/
+Insert Into 关系 [(属性1, 属性2, …)] Select ……
+```
+
+举例：添加所有学生选修数学课程的信息
+```sql
+Insert Into R(姓名, 课程) 
+Select  姓名，课程  From S, C Where 课程=“数学”
+```
+
+***
+**delete子句删除**
+
+在关系中找到满足条件的元组，并删除之
+如果没有Where子句，表示删除关系的全部元组(保留结构)
+一次只能删除一个关系中的元组
+
+**格式**
+```sql
+Delete From 关系 [Where  条件]
+```
+
+举例：删除平均分不及格的学生的选修信息
+```sql
+Delete From R Where 姓名 in
+(select 姓名 from R 
+group by 姓名 
+having avg(成绩) < 60)
+```
+
+***
+**update子句更新**
+
+在关系中找到满足条件的元组，然后更新：表达式1的值赋予属性1；表达式2的值赋予属性2……
+没有Where子句时，则对关系的全部元组都要更新
+
+**格式**
+```sql
+Update 关系 Set 属性1 = 表达式1
+[,属性2 = 表达式2]
+……
+[Where  条件]
+```
+
+举例：在原有的学生关系S里面增加"选修课程数"属性，然后填充正确的数值。
+
+```sql
+Update S set 选修课程数 = 
+(select count(课程) from R where R.姓名=S.姓名 )
+```
 
 
 
